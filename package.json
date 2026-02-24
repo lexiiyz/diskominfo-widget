@@ -17,6 +17,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:lib": "vite build --mode lib",
+    "prepare": "npm run build:lib",
     "lint": "eslint .",
     "preview": "vite preview"
   },

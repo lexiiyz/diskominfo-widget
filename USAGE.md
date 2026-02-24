@@ -5,7 +5,7 @@
 ### 1. Install package
 
 ```bash
-npm install diskominfo-widget
+npm install https://github.com/lexiiyz/diskominfo-widget.git
 ```
 
 > Atau kalau belum di-publish ke npm, copy folder `dist/` ke project kamu, lalu import langsung dari path-nya.

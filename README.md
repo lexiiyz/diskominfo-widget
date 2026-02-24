@@ -14,7 +14,7 @@ A floating chat widget built with React, Vite, and Tailwind CSS. It connects to 
 
 Please see the [USAGE.md](./USAGE.md) file for detailed instructions on how to use this widget in:
 
-1. **React Projects** (via `npm install`)
+1. **React Projects** (via `npm install https://github.com/lexiiyz/diskominfo-widget.git`)
 2. **Plain HTML Websites** (via `<script>` CDNs)
 
 ## Development Setup
