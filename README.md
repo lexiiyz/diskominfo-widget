@@ -1,16 +1,43 @@
-# React + Vite
+# Diskominfo Chat Widget
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A floating chat widget built with React, Vite, and Tailwind CSS. It connects to Supabase for user authentication (Google Login) and uses an external webhook (e.g., N8N) to process and reply to chat messages.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 💬 **Interactive Chat Interface**: Beautiful floating widget with slide-up animations and a premium UI (olive & gold theme).
+- 🔐 **Supabase Authentication**: Built-in Google OAuth login flow before users can send messages.
+- 🤖 **Webhook Integration**: Forwards user messages to any specified webhook URL and renders the bot's JSON response.
+- 📝 **Markdown Parsing**: Supports displaying markdown links, bold text, and HTML tables from the bot response.
+- 📦 **NPM Ready**: Built as a module (`es` and `umd`) for easy use across different websites.
 
-## React Compiler
+## Installation & Usage
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Please see the [USAGE.md](./USAGE.md) file for detailed instructions on how to use this widget in:
 
-## Expanding the ESLint configuration
+1. **React Projects** (via `npm install`)
+2. **Plain HTML Websites** (via `<script>` CDNs)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Development Setup
+
+If you want to modify the widget's source code:
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Start development server
+npm run dev
+
+# 3. Build the library (outputs to /dist)
+npm run build:lib
+```
+
+## Environment Variables
+
+If you are developing locally, create a `.env` file referencing your Supabase project and Webhook URL:
+
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=ey...
+VITE_WEBHOOK_URL=https://n8n.your-domain.com/webhook/chat
+```
