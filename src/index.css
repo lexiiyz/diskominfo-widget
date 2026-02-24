@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+/* Custom color palette */
+@theme {
+  /* Black (olive neutrals) */
+  --color-olive-50: rgb(242 244 240);
+  --color-olive-100: rgb(230 234 225);
+  --color-olive-200: rgb(204 213 195);
+  --color-olive-300: rgb(179 192 165);
+  --color-olive-400: rgb(153 170 136);
+  --color-olive-500: rgb(128 149 106);
+  --color-olive-600: rgb(102 119 85);
+  --color-olive-700: rgb(77 90 63);
+  --color-olive-800: rgb(51 60 42);
+  --color-olive-900: rgb(26 30 21);
+  --color-olive-950: rgb(18 21 15);
+
+  /* Brick Red */
+  --color-brick-50: rgb(251 234 234);
+  --color-brick-100: rgb(247 213 212);
+  --color-brick-200: rgb(239 170 169);
+  --color-brick-300: rgb(231 128 126);
+  --color-brick-400: rgb(222 86 84);
+  --color-brick-500: rgb(214 44 41);
+  --color-brick-600: rgb(171 35 33);
+  --color-brick-700: rgb(129 26 24);
+  --color-brick-800: rgb(86 17 16);
+  --color-brick-900: rgb(43 9 8);
+  --color-brick-950: rgb(30 6 6);
+
+  /* Rich Mahogany */
+  --color-mahogany-50: rgb(251 233 233);
+  --color-mahogany-100: rgb(248 211 211);
+  --color-mahogany-200: rgb(241 167 167);
+  --color-mahogany-300: rgb(234 123 123);
+  --color-mahogany-400: rgb(226 80 80);
+  --color-mahogany-500: rgb(219 36 36);
+  --color-mahogany-600: rgb(175 29 29);
+  --color-mahogany-700: rgb(132 21 21);
+  --color-mahogany-800: rgb(88 14 14);
+  --color-mahogany-900: rgb(44 7 7);
+  --color-mahogany-950: rgb(31 5 5);
+
+  /* Faded Copper */
+  --color-copper-50: rgb(245 244 239);
+  --color-copper-100: rgb(236 232 223);
+  --color-copper-200: rgb(217 210 191);
+  --color-copper-300: rgb(198 187 159);
+  --color-copper-400: rgb(179 165 128);
+  --color-copper-500: rgb(159 142 96);
+  --color-copper-600: rgb(128 114 77);
+  --color-copper-700: rgb(96 85 57);
+  --color-copper-800: rgb(64 57 38);
+  --color-copper-900: rgb(32 28 19);
+  --color-copper-950: rgb(22 20 13);
+
+  /* Metallic Gold */
+  --color-gold-50: rgb(250 246 234);
+  --color-gold-100: rgb(245 237 214);
+  --color-gold-200: rgb(236 220 172);
+  --color-gold-300: rgb(226 202 131);
+  --color-gold-400: rgb(216 185 90);
+  --color-gold-500: rgb(207 167 48);
+  --color-gold-600: rgb(165 134 39);
+  --color-gold-700: rgb(124 100 29);
+  --color-gold-800: rgb(83 67 19);
+  --color-gold-900: rgb(41 33 10);
+  --color-gold-950: rgb(29 23 7);
+
+  /* Widget animations */
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-bounce-in: bounce-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-pulse-soft: pulse-soft 2s ease-in-out infinite;
+  --animate-msg-in: msg-in 0.25s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes bounce-in {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(214, 44, 41, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(214, 44, 41, 0); }
+}
+
+@keyframes msg-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
