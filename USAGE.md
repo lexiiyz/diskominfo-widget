@@ -31,9 +31,11 @@ Widget akan muncul sebagai tombol 💬 di pojok kanan bawah.
 
 ---
 
-## Cara 2 — Script Tag di HTML Biasa (UMD)
+## Cara 2 — Non-React / Framework Lain (Laravel, PHP Native, CodeIgniter, HTML Biasa)
 
-### 1. Build library
+Jika website kamu tidak menggunakan ekosistem React (misal menggunakan Laravel Blade, PHP biasa, atau HTML statis), kamu tetap bisa menggunakan widget ini menggunakan tag `<script>` standar.
+
+### 1. Build library (Jika menggunakan source lokal)
 
 ```bash
 npm run build:lib
@@ -42,9 +44,9 @@ npm run build:lib
 Hasilnya ada di folder `dist/`:
 
 - `diskominfo-widget.js` (ES Module)
-- `diskominfo-widget.umd.cjs` (UMD)
+- `diskominfo-widget.umd.cjs` (UMD) - **Gunakan file ini**
 
-### 2. Embed di HTML
+### 2. Embed di HTML / View (misal: welcome.blade.php / index.html)
 
 ```html
 <!DOCTYPE html>
