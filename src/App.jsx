@@ -38,6 +38,7 @@ function App() {
         supabaseUrl={import.meta.env.VITE_SUPABASE_URL}
         supabaseKey={import.meta.env.VITE_SUPABASE_KEY}
         webhookUrl={import.meta.env.VITE_WEBHOOK_URL}
+        groqApiKey={import.meta.env.VITE_GROQ_API_KEY}
         title="Asisten Diskominfo"
       />
     </div>

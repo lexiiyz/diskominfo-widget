@@ -133,7 +133,7 @@ function parseMarkdown(text) {
   })
 }
 
-function DiskominfoWidget({ supabaseUrl, supabaseKey, webhookUrl, title = 'Asisten Diskominfo' }) {
+function DiskominfoWidget({ supabaseUrl, supabaseKey, webhookUrl, groqApiKey, title = 'Asisten Diskominfo' }) {
   const supabaseRef = useRef(null)
   if (!supabaseRef.current) {
     supabaseRef.current = createClient(supabaseUrl, supabaseKey)
@@ -145,6 +145,13 @@ function DiskominfoWidget({ supabaseUrl, supabaseKey, webhookUrl, title = 'Asist
   const [input, setInput] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+
+  // Voice recording states
+  const [isRecording, setIsRecording] = useState(false)
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
+
   const [chatSessionId, setChatSessionId] = useState('')
   const messagesEndRef = useRef(null)
 
@@ -188,12 +195,11 @@ function DiskominfoWidget({ supabaseUrl, supabaseKey, webhookUrl, title = 'Asist
     setMessages([])
   }
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return
+  const processMessage = async (textToSend) => {
+    if (!textToSend.trim() || isLoading) return
 
-    const userMsg = { sender: 'user', text: input }
+    const userMsg = { sender: 'user', text: textToSend }
     setMessages(prev => [...prev, userMsg])
-    setInput('')
     setIsLoading(true)
 
     try {
@@ -208,7 +214,6 @@ function DiskominfoWidget({ supabaseUrl, supabaseKey, webhookUrl, title = 'Asist
         })
       })
 
-      // Sabuk Pengaman 2: Validasi respons HTTP secara eksplisit
       if (!response.ok) {
         throw new Error(`Server membalas dengan status: ${response.status}`)
       }
@@ -222,7 +227,6 @@ function DiskominfoWidget({ supabaseUrl, supabaseKey, webhookUrl, title = 'Asist
         return
       }
 
-      // Sabuk Pengaman 3: Pastikan struktur data sesuai harapan
       if (!data || !data.reply) {
         throw new Error("Format respons dari server tidak memiliki field 'reply'.")
       }
@@ -231,10 +235,94 @@ function DiskominfoWidget({ supabaseUrl, supabaseKey, webhookUrl, title = 'Asist
 
     } catch (error) {
       console.error('Error:', error.message)
-      // Tangkap error dan tampilkan di UI, bukan membuat aplikasi crash
       setMessages(prev => [...prev, { sender: 'bot', text: `Maaf, terjadi kesalahan sistem: ${error.message}` }])
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return
+    const textToSend = input
+    setInput('')
+    await processMessage(textToSend)
+  }
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      mediaRecorderRef.current = new MediaRecorder(stream)
+      audioChunksRef.current = []
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        stream.getTracks().forEach(track => track.stop())
+        await transcribeAudio(audioBlob)
+      }
+
+      mediaRecorderRef.current.start()
+      setIsRecording(true)
+    } catch (error) {
+      console.error('Error accessing microphone:', error)
+      alert('Gagal mengakses mikrofon. Pastikan izin telah diberikan.')
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
+
+  const handleMicClick = async () => {
+    if (isRecording) {
+      stopRecording()
+    } else {
+      await startRecording()
+    }
+  }
+
+  const transcribeAudio = async (blob) => {
+    if (!groqApiKey) {
+      alert("API Key Groq untuk Whisper belum disetel.")
+      return
+    }
+    
+    setIsTranscribing(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', blob, 'audio.webm')
+      formData.append('model', 'whisper-large-v3')
+
+      const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${groqApiKey}`
+        },
+        body: formData
+      })
+
+      if (!response.ok) {
+        throw new Error(`Groq API Error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      if (data.text && data.text.trim()) {
+        const textFromVoice = data.text.trim()
+        await processMessage(textFromVoice)
+      }
+    } catch (error) {
+      console.error('Transcription error:', error)
+      alert(`Gagal menerjemahkan suara: ${error.message}`)
+    } finally {
+      setIsTranscribing(false)
     }
   }
 
@@ -245,9 +333,9 @@ function DiskominfoWidget({ supabaseUrl, supabaseKey, webhookUrl, title = 'Asist
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-[1000] w-16 h-16 rounded-full
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[1000] w-14 h-14 sm:w-16 sm:h-16 rounded-full
                    bg-gradient-to-br from-brick-500 to-mahogany-700
-                   text-white border-none text-3xl cursor-pointer
+                   text-white border-none text-2xl sm:text-3xl cursor-pointer
                    shadow-lg shadow-brick-500/30
                    flex items-center justify-center
                    animate-bounce-in hover:scale-110
@@ -263,10 +351,11 @@ function DiskominfoWidget({ supabaseUrl, supabaseKey, webhookUrl, title = 'Asist
 
   // 2. Chat Box (Widget Open)
   return (
-    <div className="fixed bottom-6 right-6 z-[1000] w-[380px] h-[540px]
-                    rounded-2xl overflow-hidden
+    <div className="fixed bottom-0 right-0 sm:bottom-6 sm:right-6 z-[1000] 
+                    w-full h-[100svh] sm:w-[380px] sm:h-[540px]
+                    sm:rounded-2xl overflow-hidden
                     flex flex-col
-                    bg-olive-950 border border-olive-800/50
+                    bg-olive-950 sm:border border-olive-800/50
                     shadow-2xl shadow-black/40
                     animate-slide-up">
 
@@ -276,14 +365,14 @@ function DiskominfoWidget({ supabaseUrl, supabaseKey, webhookUrl, title = 'Asist
         
         <div className="relative flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-sm
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/15 backdrop-blur-sm
                           flex items-center justify-center text-lg
                           border border-white/10">
               🏛️
             </div>
             <div>
-              <h3 className="text-white font-semibold text-sm tracking-wide m-0">{title}</h3>
-              <p className="text-brick-200/70 text-[10px] m-0 mt-0.5">
+              <h3 className="text-white font-semibold text-sm sm:text-base tracking-wide m-0">{title}</h3>
+              <p className="text-brick-200/70 text-[10px] sm:text-xs m-0 mt-0.5">
                 {session ? '● Online' : 'Silakan login'}
               </p>
             </div>
@@ -409,7 +498,7 @@ function DiskominfoWidget({ supabaseUrl, supabaseKey, webhookUrl, title = 'Asist
               </div>
             ))}
 
-            {isLoading && (
+            {(isLoading || isTranscribing) && (
               <div className="flex items-center gap-2 mb-3 animate-msg-in">
                 <div className="w-7 h-7 rounded-lg mr-2 flex-shrink-0
                              bg-gradient-to-br from-brick-600 to-mahogany-700
@@ -418,9 +507,15 @@ function DiskominfoWidget({ supabaseUrl, supabaseKey, webhookUrl, title = 'Asist
                 </div>
                 <div className="bg-olive-800/70 border border-olive-700/40 rounded-2xl rounded-bl-md px-4 py-3">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-gold-400 animate-bounce [animation-delay:0ms]" />
-                    <span className="w-2 h-2 rounded-full bg-gold-400 animate-bounce [animation-delay:150ms]" />
-                    <span className="w-2 h-2 rounded-full bg-gold-400 animate-bounce [animation-delay:300ms]" />
+                    {isTranscribing ? (
+                      <span className="text-olive-300 text-xs italic">Menerjemahkan suara...</span>
+                    ) : (
+                      <>
+                        <span className="w-2 h-2 rounded-full bg-gold-400 animate-bounce [animation-delay:0ms]" />
+                        <span className="w-2 h-2 rounded-full bg-gold-400 animate-bounce [animation-delay:150ms]" />
+                        <span className="w-2 h-2 rounded-full bg-gold-400 animate-bounce [animation-delay:300ms]" />
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -429,23 +524,72 @@ function DiskominfoWidget({ supabaseUrl, supabaseKey, webhookUrl, title = 'Asist
           </div>
 
           {/* ── Input Area ── */}
-          <div className="px-4 py-3 bg-olive-900/80 border-t border-olive-800/60">
-            <div className="flex items-center gap-2">
-              <input
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm
-                         bg-olive-800/60 text-olive-100
-                         border border-olive-700/40
-                         placeholder:text-olive-500
-                         focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/20
-                         transition-all duration-200"
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                placeholder="Ketik pesan..."
-              />
+          <div className="px-3 sm:px-4 py-3 sm:py-4 bg-olive-900/80 border-t border-olive-800/60 safe-area-bottom">
+            <div className="flex items-center gap-2 relative">
+              {isRecording ? (
+                <div className="flex-1 flex items-center justify-center gap-1.5 h-11 px-4 
+                              bg-red-500/10 border border-red-500/30 rounded-xl relative overflow-hidden">
+                  <span className="text-red-400 text-xs font-medium mr-2 animate-pulse w-full text-center absoluted flex justify-center items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                    Merekam...
+                  </span>
+                  {/* Fake Audio Wave Animation */}
+                  <div className="absolute inset-x-0 bottom-0 h-full flex items-center justify-center gap-[3px] opacity-40">
+                    {[...Array(15)].map((_, i) => (
+                      <div 
+                        key={i} 
+                        className="w-1 bg-red-400 rounded-full animate-wave" 
+                        style={{ 
+                          height: `${Math.random() * 60 + 20}%`,
+                          animationDelay: `${i * 0.1}s`,
+                          animationDuration: `${Math.random() * 0.5 + 0.5}s`
+                        }} 
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <input
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm
+                           bg-olive-800/60 text-olive-100
+                           border border-olive-700/40
+                           placeholder:text-olive-500
+                           focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/20
+                           transition-all duration-200"
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && (!input.trim() || isLoading || isTranscribing ? null : sendMessage())}
+                  placeholder="Ketik pesan..."
+                />
+              )}
+              
+              <button
+                onClick={handleMicClick}
+                disabled={isLoading || isTranscribing}
+                className={`w-10 h-10 rounded-xl flex-shrink-0 border-none cursor-pointer flex items-center justify-center transition-all duration-200 ${
+                  isRecording 
+                    ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse shadow-lg shadow-red-500/40' 
+                    : 'bg-olive-800/80 hover:bg-olive-700 text-olive-300 hover:text-white border border-olive-700/50'
+                } disabled:opacity-40 disabled:cursor-not-allowed`}
+                title={isRecording ? 'Hentikan Rekam' : 'Mulai Rekam Suara'}
+              >
+                {isRecording ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="7" y="7" width="10" height="10" rx="2" />
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                  </svg>
+                )}
+              </button>
+
               <button
                 onClick={sendMessage}
-                disabled={!input.trim() || isLoading}
+                disabled={!input.trim() || isLoading || isTranscribing || isRecording}
                 className="w-10 h-10 rounded-xl flex-shrink-0
                          bg-gradient-to-br from-brick-500 to-brick-700
                          text-white border-none cursor-pointer
