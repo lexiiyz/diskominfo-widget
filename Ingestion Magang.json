@@ -1,0 +1,524 @@
+{
+  "name": "Ingestion Magang",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1nHCInKUvY4Nurav2r3friWWkXVo2bQTx",
+          "mode": "list",
+          "cachedResultName": "Diskominfo File",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1nHCInKUvY4Nurav2r3friWWkXVo2bQTx"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        160,
+        -80
+      ],
+      "id": "e918f632-280f-4c4a-940f-1fd1468583ea",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "dSIdTFwj7QZ1w03L",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        416,
+        -80
+      ],
+      "id": "7e76082d-e1f8-4595-ae7c-660d47276d5d",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "dSIdTFwj7QZ1w03L",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        992,
+        -336
+      ],
+      "id": "7e002fd0-54c0-4d0c-9a09-e665862a3a6d",
+      "name": "Extract from File",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "magangdiskominfo",
+          "mode": "list",
+          "cachedResultName": "magangdiskominfo"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        2000,
+        -96
+      ],
+      "id": "737fa097-d10f-4f10-bf50-d22b01f2946a",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "4O3gqXygJDj1dLuF",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        1872,
+        144
+      ],
+      "id": "67d73265-5992-4da7-947a-952036f8678b",
+      "name": "Embeddings Ollama",
+      "credentials": {
+        "ollamaApi": {
+          "id": "3fy3yJSs68kJ67Qz",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json['field 1'] }}",
+        "textSplittingMode": "custom",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "real_source",
+                "value": "={{ $json.metadata.source }}"
+              },
+              {
+                "name": "file_name",
+                "value": "={{ $json.metadata.filename }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        2128,
+        144
+      ],
+      "id": "f7efd805-65e7-4ed8-b781-8c5c08ffb7cf",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "chunkSize": 1500,
+        "chunkOverlap": 200,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        2112,
+        288
+      ],
+      "id": "b88545e4-f9c8-4bfc-b9ae-1623319ddc12",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "eaddf9f0-66cc-47ca-aa8b-ac16831717b7",
+              "name": "field 1",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "f5885003-59aa-4706-a22a-2a936d413ca8",
+              "name": "metadata",
+              "value": "={   \"source\": \"{{ $('Google Drive Trigger').first().json.webViewLink }}\",   \"filename\": \"{{ $('Google Drive Trigger').first().json.name }}\" }",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1776,
+        -96
+      ],
+      "id": "8b2db5ff-8700-4d01-856b-7c8ffb62add5",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.mimeType }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "60331a5a-af81-470c-ae52-e5ebafd94a88"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "51fd6386-78f9-4356-bb7b-3a0685ba288d",
+                    "leftValue": "={{ $json.mimeType }}",
+                    "rightValue": "word",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "b1dded44-3281-495d-86f1-e82f3ebb8b72",
+                    "leftValue": "={{ $json.mimeType }}",
+                    "rightValue": "spreadsheet",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "70db2950-bdda-4a26-b653-d46d1180e114",
+                    "leftValue": "={{ $json.mimeType }}",
+                    "rightValue": "csv",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "cbdc8279-289f-41b4-b581-ddabe68264dc",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        992,
+        -80
+      ],
+      "id": "0d8bb1c9-7b0c-47ec-924c-a52e15f1cb67",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ambil semua item (baris excel)\nconst allRows = items;\n\n// Ubah setiap baris jadi satu string panjang\nconst textContent = allRows.map(row => {\n  const data = row.json;\n  // Teknik: Ambil Kunci (Header) dan Gabung dengan Nilai (Isi Cell)\n  return Object.keys(data)\n    .map(key => `${key}: ${data[key]}`) // Contoh -> \"First name: Agus\"\n    .join(\", \"); // Pisahkan antar kolom dengan koma\n}).join(\"\\n\"); // Pisahkan antar baris siswa dengan Enter\n\n// Return sebagai 1 item besar berisi teks\nreturn [\n  {\n    json: {\n      text: textContent\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        0
+      ],
+      "id": "972e5520-a9fe-4039-872d-b2c3ec800686",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        992,
+        176
+      ],
+      "id": "fa7e7592-1bd8-4ede-8528-15bb58054777",
+      "name": "Extract from File2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawItems = $input.all();\n\n// 1. Definisikan Blacklist\nconst trashPhrases = [\n  \"halaman ini sengaja dikosongkan\",\n  \"make it empty\",\n  \"this page is intentionally left blank\",\n  \"halaman kosong\"\n];\n\nfor (const item of rawItems) {\n  // Ambil teks raksasa utuh dari PDF-nya\n  let content = item.json.pageContent || item.json.text || \"\";\n  \n  // Bedah teks menjadi baris-baris terpisah (berdasarkan enter/newline)\n  let lines = content.split('\\n');\n  \n  // Filter setiap baris\n  let cleanLines = lines.filter(line => {\n    let lineLower = line.toLowerCase();\n    \n    // Cek apakah di baris ini terdapat frasa blacklist\n    let isTrash = trashPhrases.some(phrase => lineLower.includes(phrase));\n    \n    // Kalau baris ini adalah sampah, kembalikan 'false' (buang)\n    // Kalau bersih, kembalikan 'true' (simpan)\n    return !isTrash;\n  });\n  \n  // Gabungkan kembali baris-baris yang sudah bersih menjadi satu teks utuh\n  item.json.text = cleanLines.join('\\n');\n  \n  // Timpa field pageContent (jika ada) biar tidak ada data ganda yang bikin bingung AI\n  if (item.json.pageContent) {\n      item.json.pageContent = item.json.text; \n  }\n}\n\n// Kembalikan item yang isi teksnya sudah di-\"laundry\"\nreturn rawItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        -336
+      ],
+      "id": "cb52de20-6d8e-478a-998c-e2f4ea3ee58c",
+      "name": "Code in JavaScript1",
+      "alwaysOutputData": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from File2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "80549710-35c3-41b0-8dee-4f2e0fbaa0f5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3bb62f593bf71edcb4ff82a45f1bf1a24e8160e42349f812a670d7f5d14517ab"
+  },
+  "id": "cmccGANCfZtkV1Mz",
+  "tags": []
+}

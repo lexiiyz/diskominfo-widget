@@ -1,0 +1,544 @@
+{
+  "name": "Magang",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.message }}",
+        "options": {
+          "systemMessage": "=Role: Asisten Diskominfo (Info, Data & Jadwal).\nUser: {{ $json.full_name }} ({{ $json.email }}).\nTime: {{ $now.setZone('Asia/Jakarta').setLocale('id').format('HH:mm dd-MM-yyyy') }}.\n\nGAYA BAHASA & SIKAP (PENTING):\n- Bersikaplah natural, luwes, dan profesional layaknya manusia (customer service yang ramah). Jangan kaku seperti robot.\n- Jika user bertanya tentang pengetahuan umum dasar (misal: \"Apa itu ASN?\", \"Apa itu website?\"), JAWAB menggunakan pengetahuan bawaanmu secara singkat. Jangan kaku menolak menjawab jika itu pengetahuan publik.\n- NAMUN, jika pertanyaan mengarah pada Prosedur, Aturan Teknis Diskominfo, atau Data Orang/Angka, kamu WAJIB bersandar pada dokumen internal. Dilarang keras berhalusinasi soal data teknis.\n\nLOGIKA TOOL:\n1. JIKA tanya Info/SOP/Data: Gunakan `cari_sop_dokumen`.\n   - FILTER QUERY PENCARIAN: JANGAN pernah memasukkan kata-kata percakapan (seperti \"jelasin\", \"tolong\", \"apa itu\", \"dong\") ke dalam tool. Ekstrak KATA KUNCI UTAMANYA SAJA sebelum mencari. (Contoh: user tanya \"Tolong jelasin aturan absen dong\", kirim query \"aturan absen\" ke tool).\n   - Jawab detail spesifik HANYA dari konteks yang ditemukan.\n   - WAJIB Sitasi di akhir penjelasan teknis: (Sumber: [Nama File](Link URL)).\n   - Jika setelah dicari datanya tetap tidak ada, sampaikan dengan sopan bahwa kamu tidak menemukan informasi spesifik tersebut di sistem.\n\n2. JIKA atur Jadwal: Gunakan `cek_jadwal`, `buat_jadwal`, `ubah_jadwal`, `hapus_jadwal`.\n   - Cek (`cek_jadwal`) ketersediaan slot sebelum buat/ubah.\n   - Slot Filling: Tanya Topik, Jam Lama, & Jam Baru dengan mengalir di dalam percakapan, bukan seperti memberi form isian kosong.\n   - Edit (`ubah_jadwal`): Pastikan detail perubahan (misal: \"mundur 1 jam\") sudah dikonversi secara logis ke jam spesifik sebelum mengeksekusi tool.\n   - KONFIRMASI: Jangan eksekusi (`buat`/`hapus`/`ubah`) sebelum user menyatakan persetujuan secara eksplisit (misal: \"Ya\", \"Oke\", \"Setuju\").\n   - `buat_jadwal`: Wajib masukkan email user ke field 'attendees'."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1024,
+        -288
+      ],
+      "id": "0f91bde1-8106-48b6-ba97-cb015b2d41c1",
+      "name": "AI Agent",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        752,
+        192
+      ],
+      "id": "0b2334c4-3d78-4f23-b66f-39ba84a02d0c",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "FtwKdStxpUib9t4H",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat-test",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -208,
+        128
+      ],
+      "id": "f70e6785-1d5a-4ec3-b44a-4a7799e9e8a1",
+      "name": "Webhook",
+      "webhookId": "474c5e45-002d-4712-afb4-6073067b9db8"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n   \"reply\": $json.output,\n   \"timestamp\": $now\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1648,
+        -432
+      ],
+      "id": "71b82f03-2668-46c6-a8cd-5b4842fa1d37",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "user_profiles",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "condition": "eq",
+              "keyValue": "={{ $json.body.userEmail }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        32,
+        128
+      ],
+      "id": "8a94e05a-db23-45ca-b5f3-5d9f371b2066",
+      "name": "Get many rows",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "cU5SF2vTEM85yiMd",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "66142f6b-587a-4b21-9b55-a1b57fbc9a19",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        256,
+        128
+      ],
+      "id": "28ce5ff7-a62a-4b29-ab9b-0c1486bdb449",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"reply\": \"Akses ditolak. Email tidak terdaftar.\",\n  \"error\": \"auth_failed\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        896,
+        400
+      ],
+      "id": "b864b718-e8a7-4c0d-8aee-19f653b05a2f",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Alat ini untuk:\n1. Cek ketersediaan waktu (isi parameter 'start' dan 'end').\n2. MENCARI EVENT ID untuk Edit/Hapus (WAJIB isi parameter 'Query' dengan topik/judul rapat).\nOutput alat ini berisi ID, Judul, dan Waktu.",
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "31a481d7e6c54fde4e4ca73cabfbb0928459d4b053ccb4d2b9d15e4204bb625e@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Meeting Schedule Diskominfo"
+        },
+        "limit": 10,
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', ``, 'string') }}",
+        "options": {
+          "query": "={{ $json.email }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1008,
+        192
+      ],
+      "id": "328de361-516b-4d3c-8117-3005b0dfb1d6",
+      "name": "cek_jadwal",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "DK5zCbTdonSZddYx",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Gunakan alat ini HANYA SETELAH user memberikan konfirmasi \"YA\" atau \"SETUJU\".\nFungsi: Membuat event di Google Calendar.\n\nPARAMETER WAJIB:\n1. summary: Judul rapat (Contoh: \"Rapat IT\").\n2. start & end: Waktu mulai dan selesai.\n3. description: WAJIB DIISI dengan format: \"Request by: [Nama User] ([Email User]) - Topik: [Detail Topik]\".\n   (Ambil Nama & Email User dari context percakapan saat ini).",
+        "calendar": {
+          "__rl": true,
+          "value": "31a481d7e6c54fde4e4ca73cabfbb0928459d4b053ccb4d2b9d15e4204bb625e@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Meeting Schedule Diskominfo"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ $('Get many rows').item.json.email }}"
+          ],
+          "summary": "={{ $fromAI('Summary', ``, 'string') }} - {{ $('Get many rows').item.json.full_name }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1136,
+        192
+      ],
+      "id": "5d7830f0-d715-4038-af9a-a3de8f6218f4",
+      "name": "buat_jadwal",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "DK5zCbTdonSZddYx",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Alat ini untuk mengubah jadwal.\nSYARAT MUTLAK: Jangan panggil alat ini sebelum user mengonfirmasi detail perubahan.\nLakukan pencarian dulu, tawarkan opsi waktu, dan minta persetujuan user baru panggil alat ini.",
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "31a481d7e6c54fde4e4ca73cabfbb0928459d4b053ccb4d2b9d15e4204bb625e@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Meeting Schedule Diskominfo"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', ``, 'string') }}",
+        "updateFields": {
+          "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Description', ``, 'string') }}",
+          "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+          "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1392,
+        192
+      ],
+      "id": "ff31e200-c272-4d14-ab3f-07fb21edf73c",
+      "name": "ubah_jadwal",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "DK5zCbTdonSZddYx",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "BAHAYA: Alat ini menghapus jadwal permanen.\nSYARAT MUTLAK: Parameter 'eventId' HARUS berupa string ID valid (contoh: '746583...') yang didapat dari output `cek_jadwal`.\nDILARANG KERAS menebak, mengarang, atau menggunakan ID kosong.\nJANGAN panggil alat ini jika user belum memberikan konfirmasi \"YA\" secara eksplisit terhadap hasil pencarian `cek_jadwal`.",
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "31a481d7e6c54fde4e4ca73cabfbb0928459d4b053ccb4d2b9d15e4204bb625e@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Meeting Schedule Diskominfo"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1264,
+        192
+      ],
+      "id": "b8f3e473-8a5c-46f0-bc06-21d063f67cbc",
+      "name": "hapus_jadwal",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "DK5zCbTdonSZddYx",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Wajib digunakan kapanpun user bertanya tentang informasi apapun, termasuk SOP, Aturan, Data Excel/CSV, Nama Orang, Nomor Telepon, atau detail spesifik lainnya. Gunakan tool ini sebagai sumber kebenaran utama.",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "magangdiskominfo",
+          "mode": "list",
+          "cachedResultName": "magangdiskominfo"
+        },
+        "topK": 5,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        1520,
+        192
+      ],
+      "id": "3193d57b-aed6-4a89-aad8-c9e708e6edae",
+      "name": "cari_sop_dokumen",
+      "credentials": {
+        "pineconeApi": {
+          "id": "4O3gqXygJDj1dLuF",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        1584,
+        352
+      ],
+      "id": "287d6714-224b-4437-b4c0-5203c4a7c4c7",
+      "name": "Embeddings Ollama",
+      "credentials": {
+        "ollamaApi": {
+          "id": "3fy3yJSs68kJ67Qz",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"reply\": \"{{ $json.text }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1760,
+        -112
+      ],
+      "id": "27f233ad-337b-4c13-aa27-4efcf54e92fb",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Tangkap pesan error dari node sebelumnya (AI Agent)\n// Jika undefined, gunakan string kosong agar tidak crash\nconst rawError = $json.error?.message || $json.error || \"Unknown Error\";\nconst errorString = String(rawError).toLowerCase();\n\n// Siapkan pesan default jika error-nya aneh/tidak dikenali\nlet friendlyMessage = \"Maaf, sistem saat ini sedang mengalami gangguan teknis. Silakan coba beberapa saat lagi.\";\n\n// Deteksi spesifik: Limit Token / Quota Habis (Error 429)\nif (errorString.includes(\"429\") || errorString.includes(\"too many request\") || errorString.includes(\"quota\")) {\n    friendlyMessage = \"Maaf, sistem sedang melayani banyak permintaan (antrean penuh). Mohon tunggu sekitar 1 menit lalu coba lagi.\";\n} \n// Deteksi spesifik: Timeout / Otak AI lelet mikir\nelse if (errorString.includes(\"timeout\") || errorString.includes(\"econnreset\")) {\n    friendlyMessage = \"Maaf, koneksi otak AI kami sedang lambat. Pertanyaanmu gagal diproses karena waktu tunggu habis (Timeout).\";\n} \n// Deteksi spesifik: API Key salah / Server AI mati (Error 401 / 403)\nelse if (errorString.includes(\"401\") || errorString.includes(\"403\") || errorString.includes(\"authentication\")) {\n    friendlyMessage = \"Sistem AI sedang dalam perbaikan jaringan. (Kode: Auth Error). Hubungi administrator.\";\n}\n\n// Format output untuk dikembalikan ke Vercel (sesuaikan key \"text\" dengan frontend-mu)\nreturn {\n    text: friendlyMessage,\n    // Kita tetap kirim raw_error untuk kebutuhan debugging di console browser (optional)\n    debug_error: rawError \n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1536,
+        -112
+      ],
+      "id": "75082baf-5e1a-4de7-ba1a-ab782394fc13",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.sessionId }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        896,
+        192
+      ],
+      "id": "d1e8b254-9ff5-47b5-a95f-da9a4f557540",
+      "name": "Simple Memory"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cek_jadwal": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buat_jadwal": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "hapus_jadwal": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ubah_jadwal": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cari_sop_dokumen": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "cari_sop_dokumen",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "acbcae9b-7748-4cd5-938c-a27ec578bfe5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3bb62f593bf71edcb4ff82a45f1bf1a24e8160e42349f812a670d7f5d14517ab"
+  },
+  "id": "gB29hx7PdIXWLRqA",
+  "tags": []
+}
